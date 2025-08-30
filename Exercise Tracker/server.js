@@ -1,3 +1,4 @@
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -85,7 +86,7 @@ app.get('/api/users/:_id/logs', async (req, res) => {
     let exercises = await Exercise.find(query);
 
     if (from) exercises = exercises.filter(e => new Date(e.date) >= from);
-    if (to) exercises = exercises.filter(e => new Date(e.date) <= to);
+    if (limit)e(e.date) <= to);
     if (limit) exercises = exercises.slice(0, limit);
 
     res.json({
