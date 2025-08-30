@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-console.log(process.env.DB_URI)
+console.log(process.env.MONGO_URI)
 
 const express = require('express');
 const cors = require('cors');
@@ -13,7 +13,7 @@ app.use(bodyParser.json())
 
 // Basic Configuration
 try {
-    mongoose.connect(process.env.DB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+    mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 } catch (err) {
     console.log(err)
 }
