@@ -40,20 +40,25 @@ app.get('/', function (req, res) {
 // Your first API endpoint
 app.get("/api/shorturl/:input", async (req, res) => {
     const input = parseInt(req.params.input);
+    console.log("GET /api/shorturl/:input", { input });
     try {
         const data = await Url.findOne({ short: input });
+        console.log("Found data:", data);
         if (!data) return res.json({ error: "No short URL found" });
         return res.redirect(302, data.original);
     } catch (err) {
+        console.log("Error in GET /api/shorturl/:input:", err);
         return res.json({ error: "Database error" });
     }
 });
 
 app.post("/api/shorturl", async (req, res) => {
     const originalUrl = req.body.url;
+    console.log("POST /api/shorturl", { body: req.body });
     let urlRegex = new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/\/=]*)/);
 
     if (!originalUrl || !originalUrl.match(urlRegex)) {
+        console.log("Invalid URL received:", originalUrl);
         return res.json({ error: "Invalid URL" });
     }
 
@@ -61,6 +66,7 @@ app.post("/api/shorturl", async (req, res) => {
         // Check if URL already exists
         const foundUrl = await Url.findOne({ original: originalUrl });
         if (foundUrl) {
+            console.log("URL already exists:", foundUrl);
             return res.json({ original_url: foundUrl.original, short_url: foundUrl.short });
         } else {
             // Find the highest short value
@@ -69,11 +75,14 @@ app.post("/api/shorturl", async (req, res) => {
             const newUrl = new Url({ original: originalUrl, short: nextShort });
             const savedUrl = await newUrl.save();
             if (!savedUrl) {
+                console.log("Unable to save URL:", originalUrl);
                 return res.json({ error: "Unable to save URL" });
             }
+            console.log("Saved new URL:", savedUrl);
             res.json({ original_url: savedUrl.original, short_url: savedUrl.short });
         }
     } catch (err) {
+        console.log("Error in POST /api/shorturl:", err);
         return res.json({ error: "Database error" });
     }
 });
