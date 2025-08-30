@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -78,28 +77,33 @@ app.get('/api/users/:_id/logs', async (req, res) => {
     const user = await User.findById(req.params._id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    let query = { userId: user._id };
-    let from = req.query.from ? new Date(req.query.from) : null;
-    let to = req.query.to ? new Date(req.query.to) : null;
-    let limit = req.query.limit ? parseInt(req.query.limit) : null;
- 
-    let exercises = await Exercise.find(query);
+    const from = req.query.from ? new Date(req.query.from) : null;
+    const to = req.query.to ? new Date(req.query.to) : null;
+    const limit = req.query.limit ? parseInt(req.query.limit, 10) : null;
 
+    let exercises = await Exercise.find({ userId: user._id }).select('description duration date');
+
+    // Apply date filters
     if (from) exercises = exercises.filter(e => new Date(e.date) >= from);
-    if (limit)e(e.date) <= to);
-    if (limit) exercises = exercises.slice(0, limit);
+    if (to) exercises = exercises.filter(e => new Date(e.date) <= to);
+
+    // Apply limit
+    if (Number.isInteger(limit) && limit > 0) {
+      exercises = exercises.slice(0, limit);
+    }
+
+    // Always return date as toDateString string
+    const log = exercises.map(e => ({
+      description: e.description,
+      duration: Number(e.duration),
+      date: new Date(e.date).toDateString()
+    }));
 
     res.json({
       username: user.username,
-      count: exercises.length,
+      count: log.length,
       _id: user._id,
-      log: exercises.map(e => ({
-        description: e.description,
-        duration: e.duration,
-        date: e.date instanceof Date
-          ? e.date.toDateString()
-          : new Date(e.date).toDateString()
-      }))
+      log
     });
   } catch (err) {
     res.status(400).json({ error: 'Could not get logs' });
