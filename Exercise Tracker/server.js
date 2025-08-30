@@ -63,13 +63,6 @@ app.get('/api/users/:_id/logs', async (req, res) => {
     });
 });
 
-app.listen(process.env.PORT || 3001, () => {
-    console.log('Exercise Tracker listening');
-});
-
-// ...existing code...
-
-
 app.get('/api/users/:id/logs', (req, res) => {
     const id = req.params.id;
     const dateFrom = new Date(req.query.from);
