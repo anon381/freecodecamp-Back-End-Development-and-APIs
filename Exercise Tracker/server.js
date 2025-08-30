@@ -43,17 +43,18 @@ app.get('/api/users', async (req, res) => {
 // Add an exercise
 app.post('/api/users/:_id/exercises', async (req, res) => {
   try {
+    console.log('POST /api/users/:_id/exercises', req.body); // Add this line
     const user = await User.findById(req.params._id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const { description, duration, date } = req.body;
-    const exerciseDate = date ? new Date(date) : new Date(); // <-- store as Date object
+    const exerciseDate = date ? new Date(date) : new Date();
 
     const exercise = new Exercise({
       userId: user._id,
       description,
       duration: Number(duration),
-      date: exerciseDate // <-- store as Date object
+      date: exerciseDate
     });
     await exercise.save();
 
@@ -61,10 +62,11 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
       username: user.username,
       description: exercise.description,
       duration: exercise.duration,
-      date: exercise.date,
+      date: exercise.date.toDateString(),
       _id: user._id
     });
   } catch (err) {
+    console.error('Error in POST /api/users/:_id/exercises:', err); // Add this line
     res.status(400).json({ error: 'Could not add exercise' });
   }
 });
