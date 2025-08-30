@@ -101,6 +101,10 @@ app.get('/api/users/:_id/logs', async (req, res) => {
   }
 });
 
+app.get('/', (req, res) => {
+  res.send('Exercise Tracker API is running.');
+});
+
 const listener = app.listen(process.env.PORT || 3001, () => {
   console.log('Your app is listening on port ' + listener.address().port);
 });
