@@ -25,22 +25,28 @@ app.get("/api/hello", function (req, res) {
     res.json({ greeting: 'hello API' });
 });
 
-app.get("/api", (req, res) => {
-    const now = new Date();
-    res.json({ unix: now.getTime(), utc: now.toUTCString() })
+// Handles /api and /api/:date?
+app.get("/api/:date?", (req, res) => {
+    let dateParam = req.params.date;
+    let date;
+    if (!dateParam) {
+        date = new Date();
+    } else {
+        // If only digits, treat as unix timestamp (milliseconds)
+        if (/^\d+$/.test(dateParam)) {
+            date = new Date(parseInt(dateParam));
+        } else {
+            date = new Date(dateParam);
+        }
+    }
+    if (date.toString() === "Invalid Date") {
+        res.json({ error: "Invalid Date" });
+    } else {
+        res.json({ unix: date.getTime(), utc: date.toUTCString() });
+    }
 });
 
-app.get("/api/:date", (req, res) => {
-    const paramsDate = req.params.date;
-    const invalidDate = "Invalid Date";
-    const date = parseInt(paramsDate) < 10000
-        ? new Date(paramsDate)
-        : new Date(parseInt(paramsDate))
-
-    date.toString() === invalidDate
-        ? res.json({ error: invalidDate })
-        : res.json({ unix: date.valueOf(), utc: date.toUTCString() });
-});
+// ...existing code...
 
 // listen for requests :)
 var listener = app.listen(process.env.PORT, function () {
