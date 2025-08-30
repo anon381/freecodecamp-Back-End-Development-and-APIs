@@ -18,7 +18,7 @@ const exerciseSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   description: String,
   duration: Number,
-  date: String
+  date: Date // <-- change from String to Date
 });
 const User = mongoose.model('User', userSchema);
 const Exercise = mongoose.model('Exercise', exerciseSchema);
@@ -47,13 +47,13 @@ app.post('/api/users/:_id/exercises', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const { description, duration, date } = req.body;
-    const exerciseDate = date ? new Date(date).toDateString() : new Date().toDateString();
+    const exerciseDate = date ? new Date(date) : new Date(); // <-- store as Date object
 
     const exercise = new Exercise({
       userId: user._id,
       description,
       duration: Number(duration),
-      date: exerciseDate
+      date: exerciseDate // <-- store as Date object
     });
     await exercise.save();
 
@@ -93,7 +93,9 @@ app.get('/api/users/:_id/logs', async (req, res) => {
       log: exercises.map(e => ({
         description: e.description,
         duration: e.duration,
-        date: new Date(e.date).toDateString()
+        date: e.date instanceof Date
+          ? e.date.toDateString()
+          : new Date(e.date).toDateString()
       }))
     });
   } catch (err) {
