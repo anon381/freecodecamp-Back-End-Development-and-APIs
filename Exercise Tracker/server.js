@@ -1,44 +1,74 @@
-const express = require('express')
-const app = express()
-const cors = require('cors')
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
 const mongoose = require('mongoose');
-const ObjectId = require('mongoose').Types.ObjectId;
-const { Schema } = mongoose
 const bodyParser = require('body-parser');
-require('dotenv').config()
+const app = express();
 
-app.use(bodyParser.urlencoded({ extended: false }))
-app.use(bodyParser.json())
-app.use(cors())
-app.use(express.static('public'))
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/views/index.html')
+app.use(cors());
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+
+mongoose.connect(process.env.DB_URI);
+
+const userSchema = new mongoose.Schema({ username: String });
+const exerciseSchema = new mongoose.Schema({
+    userId: String,
+    description: String,
+    duration: Number,
+    date: String
+});
+const User = mongoose.model('User', userSchema);
+const Exercise = mongoose.model('Exercise', exerciseSchema);
+
+app.post('/api/users', async (req, res) => {
+    const username = req.body.username;
+    const user = new User({ username });
+    await user.save();
+    res.json({ username: user.username, _id: user._id });
 });
 
-main().catch(err => console.log(err))
+app.post('/api/users/:_id/exercises', async (req, res) => {
+    const userId = req.params._id;
+    const { description, duration, date } = req.body;
+    const user = await User.findById(userId);
+    if (!user) return res.json({ error: 'User not found' });
+    const exerciseDate = date ? new Date(date).toDateString() : new Date().toDateString();
+    const exercise = new Exercise({
+        userId,
+        description,
+        duration: Number(duration),
+        date: exerciseDate
+    });
+    await exercise.save();
+    res.json({
+        username: user.username,
+        description,
+        duration: Number(duration),
+        date: exerciseDate,
+        _id: user._id
+    });
+});
 
-async function main() {
-    await mongoose.connect(process.env.DB_URI)
-}
+app.get('/api/users/:_id/logs', async (req, res) => {
+    const userId = req.params._id;
+    const user = await User.findById(userId);
+    if (!user) return res.json({ error: 'User not found' });
+    const exercises = await Exercise.find({ userId });
+    res.json({
+        username: user.username,
+        count: exercises.length,
+        _id: user._id,
+        log: exercises.map(e => ({ description: e.description, duration: e.duration, date: e.date }))
+    });
+});
 
-const userSchema = new Schema({
-    username: { type: String, require: true, unique: true },
-    exercises: [{
-        description: String,
-        duration: Number,
-        date: Date
-    }]
-}, { versionKey: false })
+app.listen(process.env.PORT || 3001, () => {
+    console.log('Exercise Tracker listening');
+});
 
-const User = mongoose.model('User', userSchema)
-const ERROR = { error: "There was an error while getting the users." };
+// ...existing code...
 
-app.get('/api/users', (req, res) => {
-    User.find({}, (err, data) => {
-        if (err) return res.send(ERROR)
-        res.json(data)
-    })
-})
 
 app.get('/api/users/:id/logs', (req, res) => {
     const id = req.params.id;
@@ -112,6 +142,6 @@ app.post('/api/users/:id/exercises', (req, res) => {
     )
 })
 
-const listener = app.listen(process.env.PORT || 3000, () => {
+const listener = app.listen(process.env.PORT || 3001, () => {
     console.log('Your app is listening on port ' + listener.address().port)
 })
