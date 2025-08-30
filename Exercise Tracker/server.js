@@ -91,7 +91,9 @@ app.get('/api/users/:_id/logs', async (req, res) => {
       log: exercises.map(e => ({
         description: e.description,
         duration: e.duration,
-        date: new Date(e.date).toDateString() // Ensure date string format
+        date: (new Date(e.date).toString() === "Invalid Date")
+          ? e.date
+          : new Date(e.date).toDateString()
       }))
     });
   } catch (err) {
