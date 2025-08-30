@@ -7,6 +7,8 @@ const cors = require('cors');
 const app = express();
 const mongoose = require('mongoose')
 const bodyParser = require('body-parser');
+const dns = require('dns');
+const urlModule = require('url');
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json())
@@ -55,36 +57,43 @@ app.get("/api/shorturl/:input", async (req, res) => {
 app.post("/api/shorturl", async (req, res) => {
     const originalUrl = req.body.url;
     console.log("POST /api/shorturl", { body: req.body });
-    let urlRegex = new RegExp(/https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&\/\/=]*)/);
+    let urlRegex = /^https?:\/\//i;
 
-    if (!originalUrl || !originalUrl.match(urlRegex)) {
-        console.log("Invalid URL received:", originalUrl);
-        return res.json({ error: "Invalid URL" });
+    if (!originalUrl || !urlRegex.test(originalUrl)) {
+        return res.json({ error: 'invalid url' });
     }
 
+    let hostname;
     try {
-        // Check if URL already exists
-        const foundUrl = await Url.findOne({ original: originalUrl });
-        if (foundUrl) {
-            console.log("URL already exists:", foundUrl);
-            return res.json({ original_url: foundUrl.original, short_url: foundUrl.short });
-        } else {
-            // Find the highest short value
-            const data = await Url.findOne({}).sort({ short: -1 });
-            let nextShort = data ? data.short + 1 : 1;
-            const newUrl = new Url({ original: originalUrl, short: nextShort });
-            const savedUrl = await newUrl.save();
-            if (!savedUrl) {
-                console.log("Unable to save URL:", originalUrl);
-                return res.json({ error: "Unable to save URL" });
-            }
-            console.log("Saved new URL:", savedUrl);
-            res.json({ original_url: savedUrl.original, short_url: savedUrl.short });
-        }
+        hostname = urlModule.parse(originalUrl).hostname;
     } catch (err) {
-        console.log("Error in POST /api/shorturl:", err);
-        return res.json({ error: "Database error" });
+        return res.json({ error: 'invalid url' });
     }
+
+    dns.lookup(hostname, async (err) => {
+        if (err) {
+            return res.json({ error: 'invalid url' });
+        }
+        try {
+            // Check if URL already exists
+            const foundUrl = await Url.findOne({ original: originalUrl });
+            if (foundUrl) {
+                return res.json({ original_url: foundUrl.original, short_url: foundUrl.short });
+            } else {
+                // Find the highest short value
+                const data = await Url.findOne({}).sort({ short: -1 });
+                let nextShort = data ? data.short + 1 : 1;
+                const newUrl = new Url({ original: originalUrl, short: nextShort });
+                const savedUrl = await newUrl.save();
+                if (!savedUrl) {
+                    return res.json({ error: "Unable to save URL" });
+                }
+                res.json({ original_url: savedUrl.original, short_url: savedUrl.short });
+            }
+        } catch (err) {
+            return res.json({ error: "Database error" });
+        }
+    });
 });
 
 app.listen(port, function () {
