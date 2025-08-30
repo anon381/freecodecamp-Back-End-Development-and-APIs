@@ -3,11 +3,13 @@ const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const path = require('path');
 const app = express();
 
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 mongoose.connect(process.env.DB_URI);
 
@@ -91,9 +93,7 @@ app.get('/api/users/:_id/logs', async (req, res) => {
       log: exercises.map(e => ({
         description: e.description,
         duration: e.duration,
-        date: (new Date(e.date).toString() === "Invalid Date")
-          ? e.date
-          : new Date(e.date).toDateString()
+        date: new Date(e.date).toDateString()
       }))
     });
   } catch (err) {
@@ -102,7 +102,7 @@ app.get('/api/users/:_id/logs', async (req, res) => {
 });
 
 app.get('/', (req, res) => {
-  res.send('Exercise Tracker API is running.');
+  res.sendFile(path.join(__dirname, 'views', 'index.html'));
 });
 
 const listener = app.listen(process.env.PORT || 3000, () => {
