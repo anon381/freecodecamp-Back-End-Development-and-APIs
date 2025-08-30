@@ -38,12 +38,15 @@ app.get('/', function (req, res) {
 });
 
 // Your first API endpoint
-app.get("/api/shorturl/:input", (req, res) => {
+app.get("/api/shorturl/:input", async (req, res) => {
     const input = parseInt(req.params.input);
-    Url.findOne({ short: input }, function (err, data) {
-        if (err || data === null) return res.json({ error: "No short URL found" });
+    try {
+        const data = await Url.findOne({ short: input });
+        if (!data) return res.json({ error: "No short URL found" });
         return res.redirect(302, data.original);
-    });
+    } catch (err) {
+        return res.json({ error: "Database error" });
+    }
 });
 
 app.post("/api/shorturl", async (req, res) => {
@@ -54,26 +57,25 @@ app.post("/api/shorturl", async (req, res) => {
         return res.json({ error: "Invalid URL" });
     }
 
-    // Check if URL already exists
-    Url.findOne({ original: originalUrl }, (err, foundUrl) => {
-        if (err) return res.json({ error: "Database error" });
+    try {
+        // Check if URL already exists
+        const foundUrl = await Url.findOne({ original: originalUrl });
         if (foundUrl) {
             return res.json({ original_url: foundUrl.original, short_url: foundUrl.short });
         } else {
             // Find the highest short value
-            Url.findOne({}).sort({ short: -1 }).exec((err, data) => {
-                if (err) return res.json({ error: "Database error" });
-                let nextShort = data ? data.short + 1 : 1;
-                const newUrl = new Url({ original: originalUrl, short: nextShort });
-                newUrl.save((err, savedUrl) => {
-                    if (err || !savedUrl) {
-                        return res.json({ error: "Unable to save URL" });
-                    }
-                    res.json({ original_url: savedUrl.original, short_url: savedUrl.short });
-                });
-            });
+            const data = await Url.findOne({}).sort({ short: -1 });
+            let nextShort = data ? data.short + 1 : 1;
+            const newUrl = new Url({ original: originalUrl, short: nextShort });
+            const savedUrl = await newUrl.save();
+            if (!savedUrl) {
+                return res.json({ error: "Unable to save URL" });
+            }
+            res.json({ original_url: savedUrl.original, short_url: savedUrl.short });
         }
-    });
+    } catch (err) {
+        return res.json({ error: "Database error" });
+    }
 });
 
 app.listen(port, function () {
