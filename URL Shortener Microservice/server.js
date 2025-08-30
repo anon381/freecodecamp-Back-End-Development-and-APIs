@@ -42,10 +42,10 @@ app.get("/api/shorturl/:input", (req, res) => {
     const input = parseInt(req.params.input);
 
     Url.findOne({ short: input }, function (err, data) {
-        if (err || data === null) return res.json("URL NOT FOUND")
+        if (err || data === null) return res.json({ error: "No short URL found" });
         return res.redirect(data.original);
     });
-})
+});
 
 app.post("/api/shorturl", async (req, res) => {
     const bodyUrl = req.body.url;
@@ -60,7 +60,7 @@ app.post("/api/shorturl", async (req, res) => {
     Url.findOne({})
         .sort({ short: 'desc' })
         .exec((err, data) => {
-            if (err) return res.json({ error: "No url found." })
+            if (err) return res.json({ error: "No url found." });
 
             index = data !== null ? data.short + 1 : index;
 
@@ -69,12 +69,14 @@ app.post("/api/shorturl", async (req, res) => {
                 { original: bodyUrl, short: index },
                 { new: true, upsert: true },
                 (err, newUrl) => {
-                    if (!err) {
-                        res.json({ original_url: bodyUrl, short_url: newUrl.short })
+                    if (!err && newUrl) {
+                        res.json({ original_url: newUrl.original, short_url: newUrl.short });
+                    } else {
+                        res.json({ error: "Unable to save URL" });
                     }
                 }
-            )
-        })
+            );
+        });
 });
 
 app.listen(port, function () {
